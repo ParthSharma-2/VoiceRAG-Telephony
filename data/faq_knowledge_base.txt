@@ -1,0 +1,83 @@
+Q: How do I view and pay my monthly telecom bill online?
+A: You can view and pay your monthly bill anytime through our mobile app or web portal. Log in to your account, navigate to the "Billing & Payments" section, and select "Make a Payment". You can review your PDF statements, detailed itemized call and data usage, and pay using credit cards, debit cards, bank transfers (ACH), or digital wallets like Apple Pay and Google Pay.
+
+Q: What payment methods are accepted for paying my telecom bill?
+A: We accept all major credit and debit cards (Visa, MasterCard, American Express, Discover), direct ACH bank transfers from checking or savings accounts, and digital wallets including Apple Pay and Google Pay. You can also pay in person at any of our authorized retail stores with cash or debit cards.
+
+Q: How do I switch or upgrade my current mobile phone plan?
+A: You can change or upgrade your plan at any time with no penalty fees. Go to our mobile app or web portal, select "Manage Plans", and browse available unlimited and shared data plans. Choose the plan that best fits your needs and click "Confirm Change". The new plan features can take effect immediately or at the start of your next billing cycle.
+
+Q: How can I enroll in Auto-Pay and Paperless Billing to receive monthly discounts?
+A: To enroll in Auto-Pay and Paperless Billing, log in to your account portal, go to "Billing Preferences", and select "Auto-Pay & Paperless". Link your preferred payment method (debit card or checking account recommended for maximum discount) and choose paperless email notifications. Once enrolled, a $5 to $10 monthly discount per phone line will automatically reflect on your subsequent billing statements.
+
+Q: What should I do if I notice an unexplained charge or discrepancy on my bill?
+A: If you notice an unfamiliar charge, log in to your online account and open the itemized bill statement to view individual charges, roaming fees, or third-party subscriptions. If the charge appears incorrect, click "Dispute a Charge" directly on the invoice line item or call customer support at 1-800-555-0199 within 60 days of the invoice date for an immediate billing investigation and credit adjustment.
+
+Q: How do I activate a new physical SIM card or eSIM on my phone?
+A: For a physical SIM card, insert the SIM card into the SIM tray while your device is powered off, power it on, and visit our website at /activate to enter the 20-digit ICCID number printed on the card. For an eSIM, connect your phone to Wi-Fi, open the camera or Cellular Settings, and scan the activation QR code sent to your confirmation email. Follow the on-screen prompts and reboot your device once complete.
+
+Q: What steps should I take if my phone shows "No Service" or poor cellular signal?
+A: If your device displays "No Service" or "Searching", try the following troubleshooting steps: 1) Toggle Airplane Mode ON for 15 seconds and turn it OFF. 2) Restart your device. 3) Check that your SIM card is clean, undamaged, and properly seated. 4) Go to Settings > General > Reset > Reset Network Settings. 5) Check our network outage map online to confirm if service maintenance is occurring in your local area.
+
+Q: How do I configure APN (Access Point Name) settings for mobile data and MMS?
+A: For Android, open Settings > Network & Internet > Mobile Network > Advanced > Access Point Names (APN). Tap "+" to create a new APN. Set Name to "TelecomNet", APN to "internet", MMSC to "http://mms.telecom.com/mms", and APN type to "default,supl,mms". Save the APN, select it as active, and restart your device. On iPhones, APN settings are automatically configured via Carrier Settings Update under Settings > General > About.
+
+Q: How can I enable and use Wi-Fi Calling on Android and iPhone?
+A: Wi-Fi Calling allows you to make voice calls and send SMS text messages over any reliable Wi-Fi network when cellular coverage is weak. On iPhone, go to Settings > Cellular > Wi-Fi Calling and switch "Wi-Fi Calling on This iPhone" to ON. On Android, go to Settings > Network & Internet > Mobile Network > Wi-Fi Calling and toggle it ON. You will be prompted to enter a registered E911 emergency address during the initial setup.
+
+Q: My mobile data is running very slowly. How can I troubleshoot it?
+A: If your mobile data feels sluggish: 1) Check your current data usage in the mobile app to ensure you have not exceeded your high-speed monthly allowance and entered throttled speeds. 2) Restart your phone to release stale network caches. 3) Turn off Battery Saver or Low Data Mode in your cellular settings. 4) Disable any active VPN applications that may restrict bandwidth. 5) Check your signal indicator for 5G or 4G LTE reception.
+
+Q: How do I activate and use international roaming when traveling abroad?
+A: Before traveling internationally, ensure your account has International Roaming enabled in your account settings under "Features & Add-ons". On your device, enable Data Roaming in Settings > Cellular/Mobile Network. We offer International Day Pass options for $10/day, which gives you unlimited talk, text, and your domestic high-speed data allowance in over 180 countries. Charges only accrue on days you make calls, send texts, or use data abroad.
+
+Q: What are the roaming rates and international travel options available?
+A: We provide two primary international roaming options: 1) International Day Pass at $10 per day for the first line and $5 per day for additional lines on the same account, providing full access to your domestic talk, text, and data plan. 2) Pay-per-use roaming rates without a pass, typically $1.50 to $3.00 per voice minute, $0.50 per SMS, and $2.05 per MB of data depending on the destination country. We strongly recommend adding a Day Pass before departure.
+
+Q: How do I set up and access my voicemail box?
+A: To set up your voicemail for the first time, press and hold key "1" on your phone's dial keypad or dial your own 10-digit phone number. Follow the automated voice prompts to choose your 4-to-6 digit security PIN and record your personal greeting. To check your voicemail from another phone, dial your 10-digit number, interrupt the greeting by pressing "*", and enter your PIN followed by "#".
+
+Q: How do I enable or cancel Call Forwarding on my line?
+A: To forward all incoming calls to another number, open your dial keypad, dial *72 followed by the 10-digit forwarding phone number (e.g., *72-555-123-4567), and press Call. Listen for the confirmation beeps. To deactivate call forwarding and resume receiving calls on your handset, dial *73 and press Call. You can also configure Call Forwarding from your phone's Phone Settings menu under "Call Forwarding".
+
+Q: What are the high-speed data allowances and fair usage throttle policies?
+A: Our Standard Unlimited plan includes 50GB of premium high-speed 5G/4G LTE data per line each month. After 50GB, your connection speeds may be temporarily deprioritized during times of heavy network congestion. Our Premium Unlimited plan includes unlimited premium high-speed data with no deprioritization thresholds. For capped data plans (such as 5GB or 15GB), speeds reduce to 128 kbps once the monthly allowance is exhausted, with optional 1GB high-speed add-on packs available for $10.
+
+Q: How do I access the 5G and 5G Ultra Wideband network?
+A: To access 5G speeds, you need: 1) A 5G-compatible smartphone (such as iPhone 12 or newer, Samsung Galaxy S20 or newer). 2) A 5G-provisioned SIM card or eSIM. 3) A plan that includes 5G access (all our current unlimited plans include 5G at no extra charge). 4) Physical presence within a 5G coverage zone. Check your device settings to confirm Voice & Data is set to "5G Auto" or "5G On".
+
+Q: Where can I find the nearest official retail store and what are the standard business hours?
+A: You can find your nearest official store and authorized dealers by visiting our online Store Locator at /stores or through our mobile application under "Store Finder". Enter your ZIP code or city to see retail addresses, current inventory, and operating hours. Standard store hours are Monday through Saturday from 10:00 AM to 8:00 PM, and Sunday from 11:00 AM to 6:00 PM local time.
+
+Q: What are the customer support hours and direct contact phone numbers?
+A: Our automated phone assistant is available 24 hours a day, 7 days a week. Live technical support and customer care representatives are available from 7:00 AM to 10:00 PM EST, Monday through Sunday. You can dial 611 directly from your mobile phone or call our toll-free hotline at 1-800-555-0199. For deaf and hard-of-hearing customers, TTY services are available at 711.
+
+Q: How do I report spam calls, phishing text messages, or suspect fraudulent activity?
+A: To report unwanted spam or smishing text messages, forward the suspicious SMS to 7726 (SPAM) free of charge. Do not click any links contained in the message. To report fraudulent activity or unauthorized account takeover attempts, contact our dedicated Fraud Prevention Department immediately at 1-800-555-0188 or submit a report through our security center online.
+
+Q: How does the device trade-in and upgrade program work?
+A: Our Trade-In & Upgrade program lets you exchange your current smartphone for trade-in credits toward a new device. Your trade-in value is determined by the phone's make, model, storage capacity, and physical condition. To trade in, request a prepaid return shipping box online or bring your device to any retail store. Devices must have "Find My iPhone" or Google FRP deactivated and be completely wiped of personal data before return.
+
+Q: How do I suspend or block my line if my phone is lost or stolen?
+A: If your phone is lost or stolen, immediately suspend your service to prevent unauthorized calls and data charges. Log in to your account portal, go to "Device & Security", and select "Suspend Line - Lost/Stolen". You can also add your device's IMEI to the national blacklist to prevent it from being used on any cellular carrier. When you find your phone or receive a replacement, you can restore service instantly in the portal or by calling customer care.
+
+Q: ¿Cómo puedo pagar mi factura telefónica en línea y qué métodos de pago se aceptan?
+A: Puede pagar su factura mensual fácilmente a través de nuestra aplicación móvil o portal web. Aceptamos tarjetas de crédito y débito (Visa, MasterCard, American Express), transferencias bancarias directas (ACH) y billeteras digitales como Apple Pay y Google Pay. Inicie sesión en su cuenta, vaya a la sección "Facturación y Pagos" y seleccione "Realizar un Pago". También puede configurar el pago automático (Auto-Pay) para obtener un descuento mensual adicional en cada línea.
+
+Q: ¿Qué debo hacer si no tengo señal o mi teléfono móvil muestra "Sin Servicio"?
+A: Si su teléfono muestra "Sin Servicio" o la señal es débil: 1) Active el Modo Avión durante 15 segundos y desactívelo. 2) Reinicie su teléfono móvil. 3) Compruebe que la tarjeta SIM esté bien colocada y limpia. 4) Restablezca los ajustes de red en Ajustes > General > Restablecer ajustes de red. 5) Verifique nuestro mapa de cobertura en línea para confirmar si hay trabajos de mantenimiento o fallas técnicas en su área.
+
+Q: ¿Cómo activo la itinerancia internacional (roaming) en mi dispositivo móvil antes de viajar?
+A: Antes de viajar al extranjero, active el servicio de Roaming Internacional en el portal de su cuenta en la sección "Servicios y Complementos". Luego, en su teléfono, active la opción "Itinerancia de datos" en Ajustes > Red Móvil. Ofrecemos el Pase Diario Internacional por $10 al día, que le permite usar sus datos de alta velocidad, llamadas y mensajes de texto nacionales en más de 180 países sin costos sorpresivos.
+
+Q: मैं अपना नया सिम कार्ड या eSIM कैसे सक्रिय (activate) कर सकता हूँ?
+A: नए फिजिकल सिम कार्ड के लिए, फोन बंद करके सिम लगाएं और हमारी वेबसाइट /activate पर जाकर 20 अंकों का ICCID नंबर दर्ज करें। eSIM के लिए, अपने फोन को वाई-फाई (Wi-Fi) से कनेक्ट करें, फोन की सेटिंग्स में सेल्युलर मेनू खोलें और ईमेल पर प्राप्त QR कोड को स्कैन करें। ऑन-स्क्रीन निर्देशों का पालन करें और प्रक्रिया पूरी होने के बाद फोन को रीस्टार्ट करें।
+
+Q: अगर मेरा इंटरनेट या मोबाइल डेटा काम नहीं कर रहा है तो मुझे क्या करना चाहिए?
+A: यदि आपका मोबाइल डेटा नहीं चल रहा है: 1) अपने फोन को रीस्टार्ट करें या 15 सेकंड के लिए एयरप्लेन मोड (Airplane Mode) ऑन करके ऑफ करें। 2) मोबाइल ऐप में जांचें कि आपका मासिक डेटा कोटा समाप्त तो नहीं हो गया है। 3) फोन की सेटिंग्स में जाकर सुनिश्चित करें कि "Mobile Data" चालू है। 4) यदि समस्या बनी रहती है, तो 'Network Settings' को रीसेट करें या हमारी हेल्पलाइन 1-800-555-0199 पर कॉल करें।
+
+Q: Comment puis-je activer le service d'itinérance internationale (roaming) pour mon forfait ?
+A: Pour utiliser votre forfait à l'étranger, activez l'option Itinérance Internationale depuis votre espace client dans la section « Options et Services ». Sur votre smartphone, activez les « Données à l'étranger » dans Réglages > Réseau cellulaire. Notre Pass International à 10 $ par jour vous permet d'utiliser vos appels, SMS et données mobiles inclus dans plus de 180 pays sans frais cachés.
+
+Q: Comment configurer ma boîte vocale et écouter mes messages répondeur ?
+A: Pour configurer votre messagerie vocale, maintenez la touche 1 enfoncée sur le clavier de votre téléphone ou composez votre propre numéro de mobile. Suivez le guide vocal pour définir votre code PIN secret à 4-6 chiffres et enregistrer votre annonce d'accueil personnalisée. Pour consulter vos messages depuis une autre ligne, composez votre numéro, appuyez sur la touche « * » pendant l'annonce, puis saisissez votre code secret.
