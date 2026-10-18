@@ -27,15 +27,28 @@ from __future__ import annotations
 import logging
 import os
 import sys
+import asyncio
 from typing import Any
 
 import uvicorn
 from dotenv import load_dotenv
+import json
+from pathlib import Path
 from fastapi import FastAPI, Request, WebSocket
-from fastapi.responses import Response
+from fastapi.responses import HTMLResponse, Response
 
 from pipecat.audio.vad.silero import SileroVADAnalyzer
-from pipecat.frames.frames import Frame, LLMMessagesAppendFrame, TranscriptionFrame, TTSSpeakFrame
+from pipecat.audio.vad.vad_analyzer import VADParams
+from pipecat.frames.frames import (
+    AudioRawFrame,
+    Frame,
+    InputAudioRawFrame,
+    InterruptionFrame,
+    LLMMessagesAppendFrame,
+    OutputAudioRawFrame,
+    TranscriptionFrame,
+    TTSSpeakFrame,
+)
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineParams, PipelineTask
@@ -46,16 +59,18 @@ from pipecat.processors.aggregators.llm_response_universal import (
 )
 from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
 from pipecat.runner.utils import parse_telephony_websocket
+from pipecat.serializers.base_serializer import FrameSerializer
 from pipecat.serializers.twilio import TwilioFrameSerializer
 from pipecat.services.deepgram.stt import DeepgramSTTService
 from pipecat.services.elevenlabs.tts import ElevenLabsTTSService
 from pipecat.services.groq.llm import GroqLLMService
+from pipecat.services.openai.llm import OpenAILLMService
 from pipecat.transports.websocket.fastapi import (
     FastAPIWebsocketParams,
     FastAPIWebsocketTransport,
 )
 
-from src.rag_tool import rag_lookup
+from src.rag_tool import get_embedding_model, rag_lookup
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Logging
@@ -74,43 +89,38 @@ load_dotenv()
 
 DEEPGRAM_API_KEY: str = os.getenv("DEEPGRAM_API_KEY", "")
 GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY") or os.getenv("Gemini_API_KEY", "")
 ELEVENLABS_API_KEY: str = os.getenv("ELEVENLABS_API_KEY", "")
 ELEVENLABS_VOICE_ID: str = os.getenv("ELEVENLABS_VOICE_ID", "")
-GROQ_MODEL: str = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
+GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 TWILIO_ACCOUNT_SID: str = os.getenv("TWILIO_ACCOUNT_SID", "")
 TWILIO_AUTH_TOKEN: str = os.getenv("TWILIO_AUTH_TOKEN", "")
 
 # Validate that critical keys are present
-_REQUIRED_KEYS = {
-    "DEEPGRAM_API_KEY": DEEPGRAM_API_KEY,
-    "GROQ_API_KEY": GROQ_API_KEY,
-    "ELEVENLABS_API_KEY": ELEVENLABS_API_KEY,
-    "ELEVENLABS_VOICE_ID": ELEVENLABS_VOICE_ID,
-}
-for _key, _val in _REQUIRED_KEYS.items():
-    if not _val:
-        logger.warning("Environment variable %s is not set – calls will fail.", _key)
+if not (GEMINI_API_KEY or GROQ_API_KEY):
+    logger.warning("Neither GEMINI_API_KEY nor GROQ_API_KEY is set – LLM will fail.")
+if not DEEPGRAM_API_KEY:
+    logger.warning("DEEPGRAM_API_KEY is not set – STT will fail.")
+if not ELEVENLABS_API_KEY:
+    logger.warning("ELEVENLABS_API_KEY is not set – TTS will fail.")
 
 # ──────────────────────────────────────────────────────────────────────────────
 # System prompt
 # ──────────────────────────────────────────────────────────────────────────────
-SYSTEM_PROMPT = """You are a friendly, professional, and multilingual telecom customer \
-support agent working for a telecommunications company. Your job is to help callers \
-with their questions about plans, billing, network issues, SIM cards, roaming, and \
-any other telecom-related topics.
+SYSTEM_PROMPT = """You are a warm, courteous, and professional female telecom customer support \
+representative. Your goal is to provide immediate, clear, and helpful answers to callers about \
+plans, 5G data, billing, eSIM, SIM replacement, roaming, and telecom services.
 
-IMPORTANT RULES:
-1. **Language matching** – Always reply in the same language the customer is speaking. \
-If they switch languages mid-conversation, switch with them seamlessly.
-2. **Conciseness** – Keep answers short and to the point. This is a phone call, not \
-an essay. Aim for 1-3 sentences per turn unless the customer asks for more detail.
-3. **Accuracy** – When context information is provided below, base your answers on \
-that context. If the context does not cover the question, say so honestly and offer \
-to transfer to a specialist.
-4. **Tone** – Be warm, patient, and empathetic. Acknowledge frustrations before \
-offering solutions.
-5. **No hallucination** – Never invent plan prices, policy details, or technical \
-specs. Stick to the provided context or clearly state that you need to check.
+CRITICAL VOICE & LATENCY RULES:
+1. **Language Matching**: Always reply in the EXACT language the customer speaks.
+   - If the customer speaks Hindi (or Hinglish), reply in natural, polite Hindi.
+   - If they speak English, Spanish, or French, reply fluently in that language.
+2. **Extreme Conciseness (Low Latency)**: Keep every answer to 1-2 short, punchy sentences \
+(maximum 25 words). Never output lengthy paragraphs or lists. This is a real-time voice call.
+3. **Warm Female Persona**: Speak in a gentle, polite, and reassuring tone.
+4. **Accuracy & No Hallucination**: Use the CONTEXT block below whenever available. If the \
+information is not in the context, politely state that you can check further or transfer them.
 
 If a CONTEXT block appears below, use it to answer the customer's question:
 """
@@ -138,7 +148,7 @@ class RAGContextInjector(FrameProcessor):
             if user_text and user_text.strip():
                 logger.info("RAG lookup for: %s", user_text[:120])
                 try:
-                    rag_context = await rag_lookup(user_text, top_k=3)
+                    rag_context = await rag_lookup(user_text, top_k=3, score_threshold=0.40)
                 except Exception:
                     logger.exception("RAG lookup failed – proceeding without context")
                     rag_context = ""
@@ -175,6 +185,16 @@ app = FastAPI(
 )
 
 
+@app.on_event("startup")
+async def startup_event() -> None:
+    """Pre-warm the SentenceTransformer embedding model into memory on boot.
+    Prevents the first caller from incurring the ~470MB cold-load latency stall.
+    """
+    logger.info("Pre-warming SentenceTransformer model on FastAPI startup...")
+    await asyncio.to_thread(get_embedding_model)
+    logger.info("SentenceTransformer model successfully warmed into memory.")
+
+
 @app.get("/health")
 async def health_check() -> dict[str, str]:
     """Simple health check endpoint."""
@@ -203,6 +223,228 @@ async def twilio_hook(request: Request) -> Response:
 
     logger.info("Twilio hook called (%s %s) – streaming to %s", request.method, request.url.path, ws_url)
     return Response(content=twiml, media_type="application/xml")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Browser Audio Serializer (Zero-Twilio Direct Testing)
+# ──────────────────────────────────────────────────────────────────────────────
+class BrowserAudioSerializer(FrameSerializer):
+    """Serializes frames to/from the browser WebSocket client.
+
+    Inbound:
+      - Raw 16-bit linear PCM audio bytes (16kHz mono) from browser microphone
+        are converted to InputAudioRawFrame.
+      - JSON string control messages (e.g. ping, config).
+    Outbound:
+      - AudioRawFrame (from ElevenLabs TTS) -> raw PCM16 bytes sent to browser.
+      - InterruptionFrame -> JSON {"event": "clear", "type": "interruption"}.
+      - TranscriptionFrame -> JSON {"event": "transcription", "text": frame.text, "user_id": getattr(frame, "user_id", "user")}.
+    """
+
+    def __init__(self, sample_rate: int = 16000, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._sample_rate = sample_rate
+
+    async def serialize(self, frame: Frame) -> str | bytes | None:
+        if isinstance(frame, AudioRawFrame):
+            return frame.audio
+        elif isinstance(frame, InterruptionFrame):
+            return json.dumps({"event": "clear", "type": "interruption"})
+        elif isinstance(frame, TranscriptionFrame):
+            return json.dumps({
+                "event": "transcription",
+                "text": frame.text,
+                "user_id": getattr(frame, "user_id", "user"),
+            })
+        return None
+
+    async def deserialize(self, data: str | bytes) -> Frame | None:
+        if isinstance(data, bytes):
+            if not data:
+                return None
+            return InputAudioRawFrame(
+                audio=data,
+                num_channels=1,
+                sample_rate=self._sample_rate,
+            )
+        elif isinstance(data, str):
+            try:
+                # Browser control message if needed
+                return None
+            except Exception:
+                return None
+        return None
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Shared Voice Pipeline Runner
+# ──────────────────────────────────────────────────────────────────────────────
+async def run_voice_pipeline(
+    transport: FastAPIWebsocketTransport,
+    client_description: str = "Client",
+) -> None:
+    """Core Pipecat voice pipeline shared across Twilio PSTN and Browser WebSockets."""
+    # ── STT (Deepgram Nova-2 with low-latency multilingual endpointing)
+    stt = DeepgramSTTService(
+        api_key=DEEPGRAM_API_KEY,
+        settings=DeepgramSTTService.Settings(
+            model="nova-2",
+            language="multi",
+            endpointing=100,
+            smart_format=True,
+        ),
+    )
+
+    # ── LLM (Gemini preferred, or Groq fallback) ─────────────────────
+    if GEMINI_API_KEY:
+        logger.info("Using Google Gemini LLM: model=%s", GEMINI_MODEL)
+        llm = OpenAILLMService(
+            api_key=GEMINI_API_KEY,
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+            settings=OpenAILLMService.Settings(
+                model=GEMINI_MODEL,
+                temperature=0.2,
+                top_p=0.9,
+            ),
+        )
+    else:
+        logger.info("Using Groq LLM: model=%s", GROQ_MODEL)
+        llm = GroqLLMService(
+            api_key=GROQ_API_KEY,
+            settings=GroqLLMService.Settings(
+                model=GROQ_MODEL,
+                temperature=0.2,
+                top_p=0.9,
+            ),
+        )
+
+    # ── TTS (ElevenLabs Turbo v2.5 with natural female voice) ───────
+    tts = ElevenLabsTTSService(
+        api_key=ELEVENLABS_API_KEY,
+        sample_rate=16000,
+        settings=ElevenLabsTTSService.Settings(
+            model="eleven_turbo_v2_5",
+            voice=ELEVENLABS_VOICE_ID or "21m00Tcm4TlvDq8ikWAM",
+            stability=0.5,
+            similarity_boost=0.8,
+        ),
+    )
+
+    # ── LLM Context & Aggregators ───────────────────────────────────
+    context = LLMContext(
+        messages=[{"role": "system", "content": SYSTEM_PROMPT}],
+    )
+    vad_analyzer = SileroVADAnalyzer(
+        params=VADParams(
+            confidence=0.7,
+            start_secs=0.2,
+            stop_secs=0.2,
+            min_volume=0.6,
+        ),
+    )
+    user_aggregator, assistant_aggregator = LLMContextAggregatorPair(
+        context,
+        user_params=LLMUserAggregatorParams(
+            vad_analyzer=vad_analyzer,
+        ),
+    )
+
+    # ── RAG Processor ────────────────────────────────────────────────
+    rag_processor = RAGContextInjector(context=context, name="RAGContextInjector")
+
+    # ── Pipeline ─────────────────────────────────────────────────────
+    # Order:
+    #   Transport.input → STT → RAG Injector → User Aggregator (VAD)
+    #       → LLM → TTS → Assistant Aggregator → Transport.output
+    pipeline = Pipeline(
+        [
+            transport.input(),
+            stt,
+            rag_processor,
+            user_aggregator,
+            llm,
+            tts,
+            assistant_aggregator,
+            transport.output(),
+        ]
+    )
+
+    task = PipelineTask(
+        pipeline,
+        params=PipelineParams(
+            allow_interruptions=True,
+            enable_metrics=True,
+        ),
+    )
+
+    # ── Run ──────────────────────────────────────────────────────────
+    runner = PipelineRunner()
+
+    @transport.event_handler("on_client_connected")
+    async def on_client_connected(transport_inst, client):
+        logger.info("%s connected: %s", client_description, client)
+        # Greet the caller as soon as the call connects
+        await task.queue_frame(
+            LLMMessagesAppendFrame(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": "Please greet the caller warmly and concisely with: 'Hello, Namaste! Thank you for calling customer support. How can I assist you today?'",
+                    }
+                ],
+                run_llm=True,
+            )
+        )
+
+    @transport.event_handler("on_client_disconnected")
+    async def on_client_disconnected(transport_inst, client):
+        logger.info("%s disconnected: %s", client_description, client)
+        await task.cancel()
+
+    logger.info("Starting Pipecat pipeline for %s", client_description)
+    await runner.run(task)
+    logger.info("Pipecat pipeline finished for %s", client_description)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Endpoints
+# ──────────────────────────────────────────────────────────────────────────────
+@app.get("/browser", response_class=HTMLResponse)
+@app.get("/test", response_class=HTMLResponse)
+async def browser_page() -> HTMLResponse:
+    """Serve the interactive browser-based testing console."""
+    html_file = Path(__file__).resolve().parent.parent / "browser_voice_client.html"
+    if not html_file.exists():
+        html_file = Path(__file__).resolve().parent / "browser_voice_client.html"
+    if html_file.exists():
+        return HTMLResponse(content=html_file.read_text(encoding="utf-8"))
+    return HTMLResponse("<h2>browser_voice_client.html not found</h2>", status_code=404)
+
+
+@app.websocket("/browser-stream")
+async def browser_stream(websocket: WebSocket) -> None:
+    """Handle direct browser WebSocket audio streaming for local testing.
+    Bypasses Twilio and PSTN carrier restrictions completely.
+    """
+    await websocket.accept()
+    logger.info("Browser audio stream WebSocket connected")
+
+    try:
+        serializer = BrowserAudioSerializer(sample_rate=16000)
+        transport = FastAPIWebsocketTransport(
+            websocket=websocket,
+            params=FastAPIWebsocketParams(
+                audio_in_enabled=True,
+                audio_out_enabled=True,
+                add_wav_header=False,
+                serializer=serializer,
+            ),
+        )
+        await run_voice_pipeline(transport, client_description="Browser Microphone Client")
+    except Exception:
+        logger.exception("Error in browser audio stream pipeline")
+    finally:
+        logger.info("Browser audio stream WebSocket closed")
 
 
 @app.websocket("/media-stream")
@@ -240,99 +482,10 @@ async def media_stream(websocket: WebSocket) -> None:
             ),
         )
 
-        # ── STT (Deepgram) with auto-detect multi-language ───────────────
-        stt = DeepgramSTTService(
-            api_key=DEEPGRAM_API_KEY,
-            settings=DeepgramSTTService.Settings(
-                language=None,  # Auto-detect language
-            ),
-        )
-
-        # ── LLM (Groq) ──────────────────────────────────────────────────
-        llm = GroqLLMService(
-            api_key=GROQ_API_KEY,
-            settings=GroqLLMService.Settings(
-                model=GROQ_MODEL,
-            ),
-        )
-
-        # ── TTS (ElevenLabs) ─────────────────────────────────────────────
-        tts = ElevenLabsTTSService(
-            api_key=ELEVENLABS_API_KEY,
-            settings=ElevenLabsTTSService.Settings(
-                voice=ELEVENLABS_VOICE_ID,
-            ),
-        )
-
-        # ── LLM Context & Aggregators ───────────────────────────────────
-        context = LLMContext(
-            messages=[{"role": "system", "content": SYSTEM_PROMPT}],
-        )
-        user_aggregator, assistant_aggregator = LLMContextAggregatorPair(
-            context,
-            user_params=LLMUserAggregatorParams(
-                vad_analyzer=SileroVADAnalyzer(),
-            ),
-        )
-
-        # ── RAG Processor ────────────────────────────────────────────────
-        rag_processor = RAGContextInjector(context=context, name="RAGContextInjector")
-
-        # ── Pipeline ─────────────────────────────────────────────────────
-        # Order:
-        #   Transport.input → STT → RAG Injector → User Aggregator (VAD)
-        #       → LLM → TTS → Assistant Aggregator → Transport.output
-        pipeline = Pipeline(
-            [
-                transport.input(),
-                stt,
-                rag_processor,
-                user_aggregator,
-                llm,
-                tts,
-                assistant_aggregator,
-                transport.output(),
-            ]
-        )
-
-        task = PipelineTask(
-            pipeline,
-            params=PipelineParams(
-                allow_interruptions=True,
-                enable_metrics=True,
-            ),
-        )
-
-        # ── Run ──────────────────────────────────────────────────────────
-        runner = PipelineRunner()
-
-        @transport.event_handler("on_client_connected")
-        async def on_client_connected(transport_inst, client):
-            logger.info("Twilio client connected: %s", client)
-            # Greet the caller as soon as the call connects
-            await task.queue_frame(
-                LLMMessagesAppendFrame(
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": "Please greet the caller warmly and concisely with: 'Hello! Thank you for calling customer support. How can I assist you today?'",
-                        }
-                    ],
-                    run_llm=True,
-                )
-            )
-
-        @transport.event_handler("on_client_disconnected")
-        async def on_client_disconnected(transport_inst, client):
-            logger.info("Twilio client disconnected: %s", client)
-            await task.cancel()
-
-        logger.info("Starting Pipecat pipeline")
-        await runner.run(task)
-        logger.info("Pipecat pipeline finished")
+        await run_voice_pipeline(transport, client_description=f"Twilio Call ({call_sid})")
 
     except Exception:
-        logger.exception("Error in media stream pipeline")
+        logger.exception("Error in Twilio media stream pipeline")
     finally:
         logger.info("Twilio media stream WebSocket closed")
 

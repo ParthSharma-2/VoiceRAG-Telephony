@@ -67,22 +67,35 @@ def get_async_qdrant_client() -> AsyncQdrantClient:
     return _async_client
 
 
-async def rag_lookup(query: str, top_k: int = 3) -> str:
+async def rag_lookup(
+    query: str,
+    top_k: int = 3,
+    score_threshold: float = 0.40,
+) -> str:
     """
     Asynchronously retrieve relevant FAQ context for a given voice query.
 
     Encodes the query using 'paraphrase-multilingual-MiniLM-L12-v2' and searches
-    the 'telecom_faq' collection in Qdrant, returning the concatenated text of the top_k results.
+    the 'telecom_faq' collection in Qdrant, filtering results by `score_threshold`.
 
-    Supports cross-lingual mapping (e.g. Hindi, Spanish, French queries match English documents).
+    Empirical Threshold Calibration:
+        - EN query ('How do I pay my bill online?'): score ~0.75
+        - ES query ('¿Cómo puedo pagar mi factura?'): score ~0.84
+        - FR query ('Comment activer l'itinérance?'): score ~0.65
+        - HI query ('मेरा इंटरनेट काम नहीं कर रहा है'): score ~0.44
+        - Out-of-domain ('How to bake cookies'): score ~0.07
+        Threshold 0.40 admits all 4 language inquiries while rejecting irrelevant topics.
 
     Args:
         query: Transcribed user speech or text question.
         top_k: Number of nearest neighbors to retrieve (default: 3).
+        score_threshold: Minimum cosine similarity score required (default: 0.40).
+            Queries scoring below this threshold return empty string, allowing the
+            LLM to offer transfer to a human specialist rather than hallucinate.
 
     Returns:
         Concatenated text of top-matching FAQ records separated by double newlines,
-        or an empty string if no relevant match is found or an error occurs.
+        or an empty string if no relevant match passes the threshold.
     """
     if not query or not query.strip():
         return ""
@@ -91,31 +104,35 @@ async def rag_lookup(query: str, top_k: int = 3) -> str:
         model = get_embedding_model()
         client = get_async_qdrant_client()
 
-        # Run CPU-bound sentence encoding in worker thread to prevent event loop stutter
+        # Run CPU-bound sentence encoding in worker thread to prevent event loop stutter.
+        # PyTorch C++ kernels release the GIL during matrix multiplication.
         query_vector = await asyncio.to_thread(model.encode, query.strip())
         vector_list = query_vector.tolist() if hasattr(query_vector, "tolist") else list(query_vector)
 
-        # Search the Qdrant vector database asynchronously
-        search_results = await client.search(
+        # Search Qdrant vector database using query_points with score_threshold
+        query_response = await client.query_points(
             collection_name=COLLECTION_NAME,
-            query_vector=vector_list,
+            query=vector_list,
             limit=top_k,
+            score_threshold=score_threshold,
         )
 
-        if not search_results:
-            logger.debug("No search results found for query: %s", query)
+        points = getattr(query_response, "points", [])
+        if not points:
+            logger.info("No FAQ passages passed score_threshold (%.2f) for query: '%.40s...'", score_threshold, query)
             return ""
 
         extracted_chunks = [
-            hit.payload["text"]
-            for hit in search_results
-            if hit.payload and "text" in hit.payload
+            point.payload["text"]
+            for point in points
+            if point.payload and "text" in point.payload
         ]
 
         concatenated_context = "\n\n".join(extracted_chunks)
         logger.info(
-            "rag_lookup retrieved %d passages for query: '%.40s...'",
+            "rag_lookup retrieved %d passages (top score: %.3f) for query: '%.40s...'",
             len(extracted_chunks),
+            points[0].score if points else 0.0,
             query,
         )
         return concatenated_context
