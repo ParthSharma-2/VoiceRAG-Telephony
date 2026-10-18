@@ -1,0 +1,8 @@
+pipecat-ai[deepgram,groq,elevenlabs,silero]
+qdrant-client
+langchain-text-splitters
+sentence-transformers
+fastapi
+uvicorn
+python-dotenv
+ngrok
